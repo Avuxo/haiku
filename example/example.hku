@@ -1,0 +1,27 @@
+// This is a simple example of an aarch64 IPS patch.
+
+// The patch will be installed at 0x304F1.
+// This patch can be a maximum of 0x10 bytes (sixteen)
+bytes 0x304F1 10 {
+    // just some random bytes
+    42 45 41 55 4F
+    41 41 41 41 41
+}
+
+// This patch will be installed at 1432FF and will have
+// a maximum of 2F bytes (forty-seven)
+instrs 1432F8 2F {
+    fmov s0, wzr
+    ldrh w0, [x8, #0x30]
+    // since this patch only took up 8 bytes (2 instructions),
+    // there are still 0x27 bytes available. Haiku will automatically
+    // pad those with `nop' so that the full region will be populated.
+}
+
+instrs EA330 4 {
+    // pseudo-instruction to br to a relative address
+    // translated from an absolute address.
+    call #0xEA964
+    // if the following line is uncommoented, it will error (8 > 4)
+    // jump #0xEA964
+}
