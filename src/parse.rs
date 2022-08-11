@@ -1,4 +1,4 @@
-enum ParserState {
+enum ScannerState {
     Scanning,
     InInstructionPatch,
     InBytesPatch,
@@ -9,10 +9,21 @@ struct Haiku {
     bytes_len: u32, // IPS patches are limited to 2^24
 }
 
+struct ParserState {
+    padding_bytes: Vec<u8>,
+    instruction_padding: bool,
+    state: ScannerState
+}
+
 /// Parse a haiku file.
 /// takes in array of lines.
 pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
-    let mut state = ParserState::Scanning;
+    let mut state = ParserState {
+        padding_bytes: vec![0x00],
+        instruction_padding: false,
+        state: ScannerState::Scanning
+    };
+
     let mut cur_haiku = Haiku { start_address: 0, bytes_len: 0 };
     let mut remaining_bytes = 0; // how many bytes left in current haiku?
 
@@ -23,18 +34,25 @@ pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
             continue;
         }
 
-        match state {
-            ParserState::Scanning => {
+        // handle script directives.
+        // TODO: handle script directives properly
+        if line.starts_with("#") {
+            //handle_script_directive(line, state);
+            continue;
+        }
+
+        match state.state {
+            ScannerState::Scanning => {
                 // byte patch
                 if line.starts_with("bytes ") {
-                    state = ParserState::InBytesPatch;
+                    state.state = ScannerState::InBytesPatch;
 
                     let patch_info = parse_patch_definition(line);
                     cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
 
                     remaining_bytes = patch_info.1;
                 } else if line.starts_with("instrs ") {
-                    state = ParserState::InInstructionPatch;
+                    state.state = ScannerState::InInstructionPatch;
 
                     let patch_info = parse_patch_definition(line);
                     cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
@@ -47,9 +65,9 @@ pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
                 }
 
             },
-            ParserState::InInstructionPatch => {
+            ScannerState::InInstructionPatch => {
                 if line.starts_with("}") {
-                    state = ParserState::Scanning;
+                    state.state = ScannerState::Scanning;
                     continue;
                 }
 
@@ -63,9 +81,9 @@ pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
                     ));
                 }
             },
-            ParserState::InBytesPatch => {
+            ScannerState::InBytesPatch => {
                 if line.starts_with("}") {
-                    state = ParserState::Scanning;
+                    state.state = ScannerState::Scanning;
                     continue;
                 }
 

@@ -17,7 +17,7 @@ fn main() {
     ];
     let result = parse::parse_haiku(&example);
     match result {
-        Ok(_) => {},
+        Ok(_) => println!("no errors"),
         Err(message) => println!("Error: {}", message),
-    }
+    };
 }
