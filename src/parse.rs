@@ -18,6 +18,7 @@ pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
 
     for line in lines.iter() {
         // skip comments regardless of current state.
+        // TODO: handle lstripping.
         if line.starts_with("//") || line.len() == 0 {
             continue;
         }
