@@ -1,6 +1,17 @@
 # haiku
 Binary patch macro assembler generating IPS files.
 
+## Why haiku?
+When writing and maintaining binary patches, it can be inconvenient to byte count whenever making changes. Haiku will:
+- Keep track of the bytes used by your patch in the space you've allotted
+- Mixing raw byte patches and instruction patches with documentation
+- Automatic `nop` padding for the region you've allocated for your patch.
+- Macro support for some common operations
+  - Loading large immediates on aarch64
+  - Loading IEEE-754 immediates on aarch64
+  - Absolute to relative address translation support
+
+
 ## Syntax
 ```
 // This is a comment, any line that starts with `//' will be ignored
@@ -45,3 +56,7 @@ instr 30600 1F {
 - `disable_instruction_padding` stop instructions from being padded with system `nop`.
 - `enable_instruction_padding` enable instructions padding with target `nop`.
 - `instruction_padding` set the instruction to pad with. Defaults to `nop`.
+
+## Related Projects
+- [Keystone Assembler](https://github.com/keystone-engine/keystone) - the backend of this project.
+- [Basic Assembler](https://github.com/Tsukihimates/Tsukihime-Translation/tree/main/tools/assembler) - the precursor to this project.

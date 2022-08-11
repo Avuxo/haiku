@@ -4,7 +4,6 @@ use keystone::{Keystone, Arch, Mode};
 
 use crate::ips;
 
-
 enum ScannerState {
     Scanning,
     InInstructionPatch,
@@ -93,6 +92,8 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                         offset: cur_haiku.start_address,
                         patch: patch_bytes.clone(),
                     });
+
+                    // TODO: pad remaining space.
 
                     patch_bytes.clear();
 
