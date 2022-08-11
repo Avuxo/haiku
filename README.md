@@ -2,7 +2,7 @@
 Binary patch macro assembler generating IPS files.
 
 ## Syntax
-```asm
+```
 // This is a comment, any line that starts with `//' will be ignored
 // by the patch generation system
 
