@@ -27,9 +27,9 @@ pub fn parse_haiku(lines: &[&str]) -> Result<(), String>{
     let mut cur_haiku = Haiku { start_address: 0, bytes_len: 0 };
     let mut remaining_bytes = 0; // how many bytes left in current haiku?
 
-    for line in lines.iter() {
+    for raw_line in lines.iter() {
+        let line = raw_line.trim_left();
         // skip comments regardless of current state.
-        // TODO: handle lstripping.
         if line.starts_with("//") || line.len() == 0 {
             continue;
         }

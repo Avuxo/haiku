@@ -25,7 +25,7 @@ Binary patch macro assembler generating IPS files.
 // this patch.
 // A patch will not be generated if it exceeds this number.
 bytes 304F4 10 {
-// bytes can be separated by any amount of whitespace
+    // bytes can be separated by any amount of whitespace
     00 0F F1 41 41
     41 41 3F 3F 3F
 }
@@ -33,8 +33,8 @@ bytes 304F4 10 {
 // whatever instruction set is set in the assembler directive
 // will be used to assemble all instructions.
 instr 30600 1F {
-// an instruction can be prefixed by whitespace
-// there can be a maximum of one instruction per line.
+    // an instruction can be prefixed by whitespace
+    // there can be a maximum of one instruction per line.
     fmov s0, wzr
     ldrb x0, [x8, #0x30]
 }
