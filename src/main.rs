@@ -1,3 +1,5 @@
+
+mod ips;
 mod parse;
 
 fn main() {
@@ -11,7 +13,7 @@ fn main() {
         "",
         "instrs 145b78 2F {",
         "  fmov s0, wzr",
-        "  ldrb x0, [x8, #0x30]",
+        "  ldrh w0, [x8, #0x30]",
         "}",
         "// end comment",
     ];
