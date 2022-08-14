@@ -8,6 +8,8 @@
 ///
 /// Returns None when no macro exists
 pub fn get_macro(line: &str, offset: u32) -> Option<String> {
+    // TODO: architecture-specific handling.
+    // TODO: properly tokenize instead of just doing dumb check.
     if line.starts_with("!call") {
         return Some(parse_jump_statement(line, offset, true));
     } else if line.starts_with("!jump") {
@@ -29,6 +31,7 @@ fn parse_jump_statement(instr: &str, instr_address: u32, link: bool) -> String {
 
     let jump: i32 = dest_address - (instr_address as i32);
 
+    // TODO: handle multiple instructions necessary for longer jumps.
     return format!(
         "{} #{}{:#x}",
         if link {"bl"} else {"b"},

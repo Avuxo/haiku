@@ -1,14 +1,28 @@
 # haiku
 Binary patch macro assembler generating IPS files.
 
+```
+USAGE:
+    haiku [OPTIONS] <HAIKU_NAME> <IPS_NAME>
+
+ARGS:
+    <HAIKU_NAME>    Input file
+    <IPS_NAME>      Generated output file
+
+OPTIONS:
+    -a, --assembler <ASSEMBLER>    Keystone assembler backend to use [default: aarch64]
+    -h, --help                     Print help information
+    -V, --version                  Print version information
+```
+
 ## Why haiku?
 When writing and maintaining binary patches, it can be inconvenient to byte count whenever making changes. Haiku will:
 - Keep track of the bytes used by your patch in the space you've allotted
-- Mixing raw byte patches and instruction patches with documentation
-- Automatic `nop` padding for the region you've allocated for your patch.
+- Let you mix raw byte patches and instruction patches with documentation
+- Automatically `nop` pad the regions you've allocated for your patch.
 - Macro support for some common operations
-  - Loading large immediates on aarch64
-  - Loading IEEE-754 immediates on aarch64
+  - Loading large immediates on aarch64 (coming soon)
+  - Loading IEEE-754 immediates on aarch64 (coming soon)
   - Absolute to relative address translation support
 
 
@@ -18,15 +32,6 @@ When writing and maintaining binary patches, it can be inconvenient to byte coun
 // by the patch generation system
 
 // empty lines are also ignored.
-
-// lines starting with a # will run some haiku directive
-// any assembler supported by the keystone backend can be used.
-#aasembler aarch64
-
-#instruction_padding nop
-
-#disable_instruction_padding
-#enable_instruction_padding
 
 // patches starting with `bytes' will consist of a series of
 // 1 or more 2-hex-digit numbers representing bytes to be inserted
@@ -43,19 +48,21 @@ bytes 304F4 10 {
 
 // whatever instruction set is set in the assembler directive
 // will be used to assemble all instructions.
-instr 30600 1F {
+instr 30600 2C {
     // an instruction can be prefixed by whitespace
     // there can be a maximum of one instruction per line.
     fmov s0, wzr
     ldrb x0, [x8, #0x30]
+
+    // macros are prefixed with ! and will have platform dependent implementations.
+    !call #0xC1321
 }
 ```
 
-## Directives
-- `assembler` set the assembler to be used by Keystone.
-- `disable_instruction_padding` stop instructions from being padded with system `nop`.
-- `enable_instruction_padding` enable instructions padding with target `nop`.
-- `instruction_padding` set the instruction to pad with. Defaults to `nop`.
+## Macros
+### aarch64
+- `!call` translates to relative-address branch-with-link.
+- `!jump` translates to relative-address branch.
 
 ## Related Projects
 - [Keystone Assembler](https://github.com/keystone-engine/keystone) - the backend of this project.
