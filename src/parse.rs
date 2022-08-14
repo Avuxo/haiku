@@ -1,6 +1,11 @@
 extern crate keystone;
 
+use std::fs::File;
+use std::io::{prelude::*, BufReader};
+
 use keystone::{Keystone, Arch, Mode};
+use regex::Regex;
+use lazy_static::lazy_static;
 
 use crate::{ips, macros};
 
@@ -21,9 +26,13 @@ struct ParserState {
     state: ScannerState
 }
 
+lazy_static! {
+    static ref ws_split_re: Regex = Regex::new(r"\s+").unwrap();
+}
+
 /// Parse a haiku file.
-/// takes in array of lines.
-pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
+/// takes in filename and will read buffered as lines.
+pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
     // initialize the keystone engine for assembly.
     // TODO: read assembler from command line option
     let engine = Keystone::new(Arch::ARM64, Mode::LITTLE_ENDIAN)
@@ -35,6 +44,15 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
         state: ScannerState::Scanning
     };
 
+    let file = match File::open(filename) {
+        Ok(file) => file,
+        Err(error) => {
+            return Err(format!("File read error on [{}] {}", filename, error.to_string()));
+        }
+    };
+
+    let buf_reader = BufReader::new(file);
+
     let mut cur_haiku = Haiku { start_address: 0, bytes_len: 0 };
     let mut remaining_bytes = 0; // how many bytes left in current haiku?
 
@@ -43,7 +61,8 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
     // bytes for current patch
     let mut patch_bytes = Vec::<u8>::new();
 
-    for raw_line in lines.iter() {
+    for l in buf_reader.lines() {
+        let raw_line = l.unwrap();
         let line = raw_line.trim_start();
 
         // skip comments regardless of current state.
@@ -64,14 +83,14 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                 if line.starts_with("bytes ") {
                     state.state = ScannerState::InBytesPatch;
 
-                    let patch_info = parse_patch_definition(line);
+                    let patch_info = parse_patch_definition(line)?;
                     cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
 
                     remaining_bytes = patch_info.1;
                 } else if line.starts_with("instrs ") {
                     state.state = ScannerState::InInstructionPatch;
 
-                    let patch_info = parse_patch_definition(line);
+                    let patch_info = parse_patch_definition(line)?;
                     cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
 
                     remaining_bytes = patch_info.1;
@@ -144,17 +163,25 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                 }
 
                 // bytes in a patch are just separated by spaces.
-                let split = line.split(" ");
+                let split: Vec<&str> = ws_split_re.split(line).into_iter().collect();
 
                 for byte in split {
-                    let b = i64::from_str_radix(&byte, 16).unwrap() as u8;
+                    let b = match i64::from_str_radix(&byte, 16) {
+                        Ok(b) => b as u8,
+                        Err(e) => return Err(
+                            format!(
+                                "Invalid digit in byte patch for haiku @ 0x{:#x} byte {}",
+                                cur_haiku.start_address,
+                                &byte
+                            )
+                        ),
+                    };
 
                     if remaining_bytes > 0 {
                         patch_bytes.push(b);
                         remaining_bytes -= 1;
                     } else {
                         return Err(format!(
-                            // TODO: more debug info
                             "Maximum size of {} bytes exceeded for haiku @ 0x{:#x} with byte {:#x}",
                             cur_haiku.bytes_len,
                             cur_haiku.start_address,
@@ -174,17 +201,20 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
 ///
 /// Assumes that this line has already been checked to start with either
 /// `bytes' or `instrs'
-fn parse_patch_definition(line: &str) -> (u32, u32) {
+fn parse_patch_definition(line: &str) -> Result<(u32, u32), String> {
     // whether its a byte patch or instruction patch doesn't matter.
     // the last token will also always be `{' but that can be ignored.
     // TODO: more robust handling of spaces rather than dumb split.
     let tokens: Vec<&str> = line.split(" ").collect();
 
-    let address = i64::from_str_radix(tokens[1], 16).unwrap() as u32;
+    let address = match i64::from_str_radix(tokens[1], 16) {
+        Ok(addr) => addr as u32,
+        Err(e) => return Err(e.to_string()),
+    };
 
     let byte_len = i64::from_str_radix(tokens[2], 16).unwrap() as u32;
 
-    (address, byte_len)
+    Ok((address, byte_len))
 }
 
 #[cfg(test)]
@@ -195,7 +225,7 @@ mod tests {
     fn parses_bytes_patch_definition() {
         let definition = "bytes 304F1 10 {";
 
-        let result: (u32, u32) = parse_patch_definition(definition);
+        let result: (u32, u32) = parse_patch_definition(definition)?;
 
         assert_eq!(result.0, 0x304F1);
         assert_eq!(result.1, 0x10);
@@ -205,7 +235,7 @@ mod tests {
     fn parses_instrs_patch_definition() {
         let definition = "instrs 145b78 2F {";
 
-        let result: (u32, u32) = parse_patch_definition(definition);
+        let result: (u32, u32) = parse_patch_definition(definition)?;
 
         assert_eq!(result.0, 0x145b78);
         assert_eq!(result.1, 0x2f);

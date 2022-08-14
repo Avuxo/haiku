@@ -1,0 +1,27 @@
+// example binary patch used by the Tsukihimates translation patch
+
+instrs c5a18 4 {
+    mov x0, x9
+}
+
+instrs c05cc 4 {
+    nop
+}
+
+instrs c4dd8 30 {
+    cmp w0, #0x100
+    bgt #0x0C
+    // ascii
+    mov w8, #0x01
+    ret
+
+    cmp w0, #0xE000
+    blt #0x14
+    cmp w0, #0xF000
+    bgt #0x0C
+
+    mov w8, #0x01
+    ret
+    mov w8, #0x00
+    ret
+}
