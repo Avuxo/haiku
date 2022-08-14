@@ -4,8 +4,6 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
 use keystone::{Keystone, Arch, Mode};
-use regex::Regex;
-use lazy_static::lazy_static;
 
 use crate::{ips, macros};
 
@@ -16,7 +14,7 @@ enum ScannerState {
 }
 
 struct Haiku {
-    start_address: u32,
+    start_offset: u32,
     bytes_len: u32, // IPS patches are limited to 2^24
 }
 
@@ -24,10 +22,6 @@ struct ParserState {
     padding_bytes: Vec<u8>,
     instruction_padding: bool,
     state: ScannerState
-}
-
-lazy_static! {
-    static ref ws_split_re: Regex = Regex::new(r"\s+").unwrap();
 }
 
 /// Parse a haiku file.
@@ -53,7 +47,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
 
     let buf_reader = BufReader::new(file);
 
-    let mut cur_haiku = Haiku { start_address: 0, bytes_len: 0 };
+    let mut cur_haiku = Haiku { start_offset: 0, bytes_len: 0 };
     let mut remaining_bytes = 0; // how many bytes left in current haiku?
 
     let mut ips_entries = Vec::<ips::IpsEntry>::new();
@@ -84,14 +78,14 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                     state.state = ScannerState::InBytesPatch;
 
                     let patch_info = parse_patch_definition(line)?;
-                    cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
+                    cur_haiku = Haiku{ start_offset: patch_info.0, bytes_len: patch_info.1,};
 
                     remaining_bytes = patch_info.1;
                 } else if line.starts_with("instrs ") {
                     state.state = ScannerState::InInstructionPatch;
 
                     let patch_info = parse_patch_definition(line)?;
-                    cur_haiku = Haiku{ start_address: patch_info.0, bytes_len: patch_info.1,};
+                    cur_haiku = Haiku{ start_offset: patch_info.0, bytes_len: patch_info.1,};
 
                     remaining_bytes = patch_info.1;
                 } else {
@@ -101,6 +95,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                 }
 
             },
+
             ScannerState::InInstructionPatch => {
                 if line.starts_with("}") {
                     state.state = ScannerState::Scanning;
@@ -118,7 +113,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                     // entries in the bytes vector. Copied
                     // so that the buffer can be cleared.
                     ips_entries.push(ips::IpsEntry{
-                        offset: cur_haiku.start_address,
+                        offset: cur_haiku.start_offset,
                         patch: patch_bytes.clone(),
                     });
 
@@ -129,9 +124,9 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
 
                 let mut instruction = line.to_string();
 
-                /*if let Some(instr) = macros::get_macro(line) {
+                if let Some(instr) = macros::get_macro(line, cur_haiku.start_offset + patch_bytes.len() as u32) {
                     instruction = instr;
-                }*/
+                }
 
                 let assembled = engine.asm(instruction, 0).expect(
                     &format!("Failed to assemble [{}]", line)
@@ -141,7 +136,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                 if remaining_bytes < assembled.bytes.len() as u32 {
                     return Err(format!(
                         "Max length exceeded for haiku @ 0x{:#x} on instruction [{}]",
-                        cur_haiku.start_address,
+                        cur_haiku.start_offset,
                         line
                     ));
                 }
@@ -150,12 +145,13 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
 
                 patch_bytes.extend_from_slice(&assembled.bytes);
             },
+
             ScannerState::InBytesPatch => {
                 if line.starts_with("}") {
                     state.state = ScannerState::Scanning;
 
                     ips_entries.push(ips::IpsEntry{
-                        offset: cur_haiku.start_address,
+                        offset: cur_haiku.start_offset,
                         patch: patch_bytes.clone(),
                     });
 
@@ -163,15 +159,15 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                 }
 
                 // bytes in a patch are just separated by spaces.
-                let split: Vec<&str> = ws_split_re.split(line).into_iter().collect();
+                let split: Vec<&str> = line.split_whitespace().collect();
 
                 for byte in split {
                     let b = match i64::from_str_radix(&byte, 16) {
                         Ok(b) => b as u8,
-                        Err(e) => return Err(
+                        Err(_) => return Err(
                             format!(
                                 "Invalid digit in byte patch for haiku @ 0x{:#x} byte {}",
-                                cur_haiku.start_address,
+                                cur_haiku.start_offset,
                                 &byte
                             )
                         ),
@@ -184,7 +180,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                         return Err(format!(
                             "Maximum size of {} bytes exceeded for haiku @ 0x{:#x} with byte {:#x}",
                             cur_haiku.bytes_len,
-                            cur_haiku.start_address,
+                            cur_haiku.start_offset,
                             b
                         ));
                     }

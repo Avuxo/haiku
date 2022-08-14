@@ -21,7 +21,7 @@ instrs 1432F8 30 {
 instrs EA330 4 {
     // pseudo-instruction to br to a relative address
     // translated from an absolute address.
-    // call #0xEA964
+    !call #0xEA964
     // if the following line is uncommoented, it will error (8 > 4)
     // jump #0xEA964
 }
