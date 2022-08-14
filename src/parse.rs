@@ -2,7 +2,7 @@ extern crate keystone;
 
 use keystone::{Keystone, Arch, Mode};
 
-use crate::ips;
+use crate::{ips, macros};
 
 enum ScannerState {
     Scanning,
@@ -110,7 +110,13 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                     ));
                 }
 
-                let assembled = engine.asm(line.to_string(), 0).expect(
+                let mut instruction = line.to_string();
+
+                /*if let Some(instr) = macros::get_macro(line) {
+                    instruction = instr;
+                }*/
+
+                let assembled = engine.asm(instruction, 0).expect(
                     &format!("Failed to assemble [{}]", line)
                 );
 
@@ -130,6 +136,12 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
             ScannerState::InBytesPatch => {
                 if line.starts_with("}") {
                     state.state = ScannerState::Scanning;
+
+                    ips_entries.push(ips::IpsEntry{
+                        offset: cur_haiku.start_address,
+                        patch: patch_bytes.clone(),
+                    });
+
                     continue;
                 }
 
@@ -142,7 +154,13 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                         cur_haiku.start_address,
                     ));
                 }
-                
+
+                // bytes in a patch are just separated by spaces.
+                let split = line.split(" ");
+                for byte in split {
+                    let b = i64::from_str_radix(&byte, 16).unwrap() as u8;
+                    patch_bytes.push(b);
+                }
             },
         }
     }

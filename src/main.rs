@@ -1,6 +1,7 @@
 
 mod ips;
 mod parse;
+mod macros;
 
 fn main() {
     let example = vec![
@@ -8,6 +9,7 @@ fn main() {
         "// comment 2",
         "bytes 304F1 10 {",
         "  00 43 11 FF",
+        "  31 24 31 12",
         "}",
         "",
         "",
