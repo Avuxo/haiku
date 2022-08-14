@@ -45,6 +45,7 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
 
     for raw_line in lines.iter() {
         let line = raw_line.trim_start();
+
         // skip comments regardless of current state.
         if line.starts_with("//") || line.len() == 0 {
             continue;
@@ -107,16 +108,6 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                     continue;
                 }
 
-                // process each instruction line by line
-                if remaining_bytes == 0 {
-                    return Err(format!(
-                        // TODO: more debug info
-                        "Maximum size of {} bytes exceeded for haiku @ 0x{:#x}",
-                        cur_haiku.bytes_len,
-                        cur_haiku.start_address,
-                    ));
-                }
-
                 let mut instruction = line.to_string();
 
                 /*if let Some(instr) = macros::get_macro(line) {
@@ -127,10 +118,10 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                     &format!("Failed to assemble [{}]", line)
                 );
 
-                // does space remain?
+                // does space remain for new assembly?
                 if remaining_bytes < assembled.bytes.len() as u32 {
                     return Err(format!(
-                        "Max length exceeded @ 0x{:#x} on instruction [{}]",
+                        "Max length exceeded for haiku @ 0x{:#x} on instruction [{}]",
                         cur_haiku.start_address,
                         line
                     ));
@@ -152,21 +143,24 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                     continue;
                 }
 
-                // process each instruction line by line
-                if remaining_bytes == 0 {
-                    return Err(format!(
-                        // TODO: more debug info
-                        "Maximum size of {} bytes exceeded for haiku @ 0x{:#x}",
-                        cur_haiku.bytes_len,
-                        cur_haiku.start_address,
-                    ));
-                }
-
                 // bytes in a patch are just separated by spaces.
                 let split = line.split(" ");
+
                 for byte in split {
                     let b = i64::from_str_radix(&byte, 16).unwrap() as u8;
-                    patch_bytes.push(b);
+
+                    if remaining_bytes > 0 {
+                        patch_bytes.push(b);
+                        remaining_bytes -= 1;
+                    } else {
+                        return Err(format!(
+                            // TODO: more debug info
+                            "Maximum size of {} bytes exceeded for haiku @ 0x{:#x} with byte {:#x}",
+                            cur_haiku.bytes_len,
+                            cur_haiku.start_address,
+                            b
+                        ));
+                    }
                 }
             },
         }
