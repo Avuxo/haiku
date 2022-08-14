@@ -13,7 +13,7 @@ fn main() {
         "}",
         "",
         "",
-        "instrs 145b78 2F {",
+        "instrs 145b78 1C {",
         "  fmov s0, wzr",
         "  ldrh w0, [x8, #0x30]",
         "}",

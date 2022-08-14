@@ -30,8 +30,8 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
         .expect("Could not initialize Keystone engine");
 
     let mut state = ParserState {
-        padding_bytes: vec![0x00],
-        instruction_padding: false,
+        padding_bytes: vec![0x1f, 0x20, 0x03, 0xd5], // aarch64 nop
+        instruction_padding: true,
         state: ScannerState::Scanning
     };
 
@@ -85,6 +85,15 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                 if line.starts_with("}") {
                     state.state = ScannerState::Scanning;
 
+                    // pad remaining instructions with nops etc.
+                    if state.instruction_padding {
+                        let padding_entry_length = state.padding_bytes.len() as u32;
+                        while remaining_bytes > 0 {
+                            patch_bytes.extend_from_slice(&state.padding_bytes);
+                            remaining_bytes -= padding_entry_length;
+                        }
+                    }
+
                     // build the result based on the current
                     // entries in the bytes vector. Copied
                     // so that the buffer can be cleared.
@@ -92,8 +101,6 @@ pub fn parse_haiku(lines: &[&str]) -> Result<Vec<ips::IpsEntry>, String>{
                         offset: cur_haiku.start_address,
                         patch: patch_bytes.clone(),
                     });
-
-                    // TODO: pad remaining space.
 
                     patch_bytes.clear();
 
