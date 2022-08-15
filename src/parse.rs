@@ -36,7 +36,7 @@ pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::Ip
     let file = match File::open(filename) {
         Ok(file) => file,
         Err(error) => {
-            return Err(format!("File read error on [{}] {}", filename, error.to_string()));
+            return Err(format!("File read error on [{}] {}", filename, error));
         }
     };
 
@@ -55,13 +55,13 @@ pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::Ip
         let line = raw_line.trim_start();
 
         // skip comments regardless of current state.
-        if line.starts_with("//") || line.len() == 0 {
+        if line.starts_with("//") || line.is_empty() {
             continue;
         }
 
         // handle script directives.
         // TODO: handle script directives properly
-        if line.starts_with("#") {
+        if line.starts_with('#') {
             //handle_script_directive(line, state);
             continue;
         }
@@ -92,7 +92,7 @@ pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::Ip
             },
 
             ScannerState::InInstructionPatch => {
-                if line.starts_with("}") {
+                if line.starts_with('}') {
                     state.state = ScannerState::Scanning;
 
                     // pad remaining instructions with nops etc.
@@ -123,9 +123,9 @@ pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::Ip
                     instruction = instr;
                 }
 
-                let assembled = engine.asm(instruction, 0).expect(
-                    &format!("Failed to assemble [{}]", line)
-                );
+                let assembled = engine
+                    .asm(instruction, 0)
+                    .unwrap_or_else(|_| panic!("Failed to assemble [{}]", line));
 
                 // does space remain for new assembly?
                 if remaining_bytes < assembled.bytes.len() as u32 {
@@ -142,7 +142,7 @@ pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::Ip
             },
 
             ScannerState::InBytesPatch => {
-                if line.starts_with("}") {
+                if line.starts_with('}') {
                     state.state = ScannerState::Scanning;
 
                     ips_entries.push(ips::IpsEntry{
@@ -176,7 +176,7 @@ fn parse_patch_definition(line: &str) -> Result<(u32, u32), String> {
     // whether its a byte patch or instruction patch doesn't matter.
     // the last token will also always be `{' but that can be ignored.
     // TODO: more robust handling of spaces rather than dumb split.
-    let tokens: Vec<&str> = line.split(" ").collect();
+    let tokens: Vec<&str> = line.split_whitespace().collect();
 
     let address = match i64::from_str_radix(tokens[1], 16) {
         Ok(addr) => addr as u32,
@@ -196,7 +196,7 @@ fn parse_byte_list(line: &str, start_offset: u32, mut remaining_bytes: u32) -> R
     let split: Vec<&str> = line.split_whitespace().collect();
 
     for byte in split {
-        let b = match i64::from_str_radix(&byte, 16) {
+        let b = match i64::from_str_radix(byte, 16) {
             Ok(b) => b as u8,
             Err(_) => return Err(
                 format!(

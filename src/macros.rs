@@ -32,10 +32,10 @@ fn parse_jump_statement(instr: &str, instr_address: u32, link: bool) -> String {
     let jump: i32 = dest_address - (instr_address as i32);
 
     // TODO: handle multiple instructions necessary for longer jumps.
-    return format!(
+    format!(
         "{} #{}{:#x}",
         if link {"bl"} else {"b"},
         if jump > 0 { "" } else { "-" },
         jump.abs()
-    );
+    )
 }
