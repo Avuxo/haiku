@@ -20,11 +20,11 @@ struct ParserState {
 }
 
 /// Parse a haiku file.
-/// takes in filename and will read buffered as lines.
-pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
+/// takes in filename and will read buffered as lines, flag for endianness,
+/// and arch assembler to use.
+pub fn parse_haiku(filename: &str, mode: Mode, arch: Arch) -> Result<Vec<ips::IpsEntry>, String> {
     // initialize the keystone engine for assembly.
-    // gTODO: read assembler from command line option
-    let engine = Keystone::new(Arch::ARM64, Mode::LITTLE_ENDIAN)
+    let engine = Keystone::new(arch, mode)
         .expect("Could not initialize Keystone engine");
 
     let mut state = ParserState {

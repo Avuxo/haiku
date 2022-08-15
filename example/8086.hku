@@ -1,0 +1,7 @@
+// example of 16 bit x86 patch
+// build with: haiku -s16 -a x86 -l example/8086.hku out.ips
+
+instrs 301 3 {
+    xor ax, ax
+    nop
+}

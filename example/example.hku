@@ -1,4 +1,5 @@
 // This is a simple example of an aarch64 IPS patch.
+// build with: haiku -a aarch64 -l example/example.hkua out.ips
 
 // The patch will be installed at 0x304F1.
 // This patch can be a maximum of 0x10 bytes (sixteen)

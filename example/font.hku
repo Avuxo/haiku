@@ -1,6 +1,7 @@
 // Font patch used by Tsukihimates translated into a haiku.
 // Original Basic Assembler version can be seen here:
 // https://github.com/Tsukihimates/Tsukihime-Translation/blob/0e62a14d4d5919cc53d710dd3e25b51bf5220e88/Ryujinx_mods/beatrice/beatrice.s
+// build with: haiku -a aarch64 -l example/font.hku font.ips
 
 // fix buggy line-feed
 instrs c5a18 4 {

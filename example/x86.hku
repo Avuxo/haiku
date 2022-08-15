@@ -1,0 +1,9 @@
+// Example of using x86 instead of aarch64
+// build with: haiku -a x86 -s 64  -l example/x86.hku x86.ips
+
+// fix buggy line-feed
+instrs c5a18 8 {
+    xor eax, eax
+    mov eax, 0x30
+    nop
+}

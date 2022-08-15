@@ -10,12 +10,14 @@ ARGS:
     <IPS_NAME>      Generated output file
 
 OPTIONS:
-    -a, --assembler <ASSEMBLER>    Keystone assembler backend to use [default: aarch64]
-    -h, --help                     Print help information
-    -l, --little-endian            Determine endianness of ASSEMBLER output. byte patches are
-                                   unaffected [default: true]
-    -V, --version                  Print version information
+    -a, --architecture <ARCHITECTURE>  Keystone assembler backend to use [default: aarch64]
+    -h, --help                         Print help information
+    -l, --little-endian                Determine endianness of ASSEMBLER output. byte patches are unaffected
+    -s, --address-size <ADDRESS_SIZE>  n-bit address. Valid values: 16, 32, 64 (optional)
+    -V, --version                      Print version information
 ```
+
+Note that when using ARM architectures, yoou **should not** set a processor address size.
 
 ## Why haiku?
 When writing and maintaining binary patches, it can be inconvenient to byte count whenever making changes. Haiku will:
@@ -60,6 +62,19 @@ instr 30600 2C {
     !call #0xC1321
 }
 ```
+
+## Architecture list
+- `arm`
+- `aarch64`
+- `x86`
+- `mips`
+- `ppc`
+- `sparc`
+- `systemz`
+- `hexagon`
+- `max`
+
+Note that there is not _yet_ any support for enabling ARM thumb mode.
 
 ## Macros
 ### aarch64
