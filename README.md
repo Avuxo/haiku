@@ -52,7 +52,7 @@ bytes 304F4 10 {
 
 // whatever instruction set is set in the assembler directive
 // will be used to assemble all instructions.
-instr 30600 2C {
+instrs 30600 2C {
     // an instruction can be prefixed by whitespace
     // there can be a maximum of one instruction per line.
     fmov s0, wzr
