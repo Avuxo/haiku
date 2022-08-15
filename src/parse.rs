@@ -130,7 +130,7 @@ pub fn parse_haiku(filename: &str) -> Result<Vec<ips::IpsEntry>, String> {
                 // does space remain for new assembly?
                 if remaining_bytes < assembled.bytes.len() as u32 {
                     return Err(format!(
-                        "Max length exceeded for haiku @ 0x{:#x} on instruction [{}]",
+                        "Max length exceeded for haiku @ {:#x} on instruction [{}]",
                         start_offset,
                         line
                     ));
@@ -200,7 +200,7 @@ fn parse_byte_list(line: &str, start_offset: u32, mut remaining_bytes: u32) -> R
             Ok(b) => b as u8,
             Err(_) => return Err(
                 format!(
-                    "Invalid digit in byte patch for haiku @ 0x{:#x} byte {}",
+                    "Invalid digit in byte patch for haiku @ {:#x} byte {}",
                     start_offset,
                     &byte
                 )
@@ -212,7 +212,7 @@ fn parse_byte_list(line: &str, start_offset: u32, mut remaining_bytes: u32) -> R
             remaining_bytes -= 1;
         } else {
             return Err(format!(
-                "Maximum size exceeded for haiku @ 0x{:#x} with byte {:#x}",
+                "Maximum size exceeded for haiku @ {:#x} with byte {:#x}",
                 start_offset,
                 b
             ));
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn parse_path_def_should_have_error_for_invalid_digits() {
         let definition = "instrs 0x145b78 2F {";
-
+        
         let result = parse_patch_definition(definition);
 
         assert!(result.is_err());
@@ -259,8 +259,32 @@ mod tests {
     #[test]
     fn parse_out_bytes_from_string_when_enough_space() {
         let line = "80 1F 00 03";
-        let result = parse_byte_list(line, 0xDEADBEEF, 4).unwrap();
+        let result = parse_byte_list(line, 0xDEADBEEF, 0x04).unwrap();
 
         assert_eq!(result, vec![0x80, 0x1f, 0x00, 0x03]);
+    }
+
+    #[test]
+    fn parse_bytes_should_have_error_for_invalid_digits() {
+        let line = "g80 1F 00 03";
+        let result = parse_byte_list(line, 0xDEADBEEF, 0x04);
+
+        assert!(result.is_err());
+        assert_eq!(
+            "Invalid digit in byte patch for haiku @ 0xdeadbeef byte g80",
+            result.unwrap_err().to_string()
+        );
+    }
+
+    #[test]
+    fn parse_bytes_should_have_error_when_out_of_space() {
+        let line = "80 1F 00 03";
+        let result = parse_byte_list(line, 0xDEADBEEF, 0x03);
+
+        assert!(result.is_err());
+        assert_eq!(
+            "Maximum size exceeded for haiku @ 0xdeadbeef with byte 0x3",
+            result.unwrap_err().to_string()
+        );
     }
 }
