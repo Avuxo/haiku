@@ -42,3 +42,47 @@ pub fn get_mode_flags(address_size: Option<u8>, endianness: bool) -> io::Result<
 
     Ok(mode)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn properly_gets_all_architectures() {
+        let tests = [
+            ("arm", Arch::ARM),
+            ("aarch64", Arch::ARM64),
+            ("x86", Arch::X86),
+            ("mips", Arch::MIPS),
+            ("ppc", Arch::PPC),
+            ("sparc", Arch::SPARC),
+            ("systemz", Arch::SYSTEMZ),
+            ("hexagon", Arch::HEXAGON),
+            ("max", Arch::MAX),
+        ];
+
+        for test in tests {
+            let result = get_architecture(test.0).unwrap();
+            assert_eq!(result, test.1);
+        }
+    }
+
+    #[test]
+    fn will_error_on_invalid_architecture() {
+        let test = "aarch65";
+        let result = get_architecture(test);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "invalid architecture");
+    }
+
+    #[test]
+    fn sets_correct_bitflags_for_mode() {
+        let address_size = Some(16 as u8);
+        let mode = get_mode_flags(address_size, false).unwrap();
+
+        assert_eq!(mode & Mode::MODE_16, Mode::MODE_16);
+        assert_eq!(mode & Mode::LITTLE_ENDIAN, Mode::LITTLE_ENDIAN);
+    }
+}
