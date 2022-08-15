@@ -12,6 +12,8 @@ ARGS:
 OPTIONS:
     -a, --assembler <ASSEMBLER>    Keystone assembler backend to use [default: aarch64]
     -h, --help                     Print help information
+    -l, --little-endian            Determine endianness of ASSEMBLER output. byte patches are
+                                   unaffected [default: true]
     -V, --version                  Print version information
 ```
 
