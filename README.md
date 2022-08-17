@@ -1,6 +1,6 @@
 # haiku
 Binary patch macro assembler generating IPS files.
-<p align="center"><img src="./haiku.png"/></p>
+<p align="center"><img height=150 width=250 src="./haiku.png"/></p>
 
 ```
 USAGE:
